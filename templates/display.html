@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-white text-gray-900 min-h-screen flex flex-col items-center p-0">
+    <nav class="w-full p-4 flex justify-between items-center shadow-md" style="background-color: rgb(24 38 104);">
+        <h1 class="text-lg font-bold text-white">Bunk chyu monu 🌝</h1>
+        <a href="/" class="text-white hover:text-gray-300"><i class="ph ph-sign-out"></i>Logout</a>
+    </nav>
+    <div class="bg-gray-100 p-6 rounded-lg shadow-lg w-full max-w-full mt-4">
+        <h2 id="student-info" class="text-xl font-semibold mb-4"></h2>
+        <p>It shows how many classes you can bunk or need to attend to reach that percentage 🌚</p>
+        <label for="targetPercentage" class="block text-lg mb-2">Set Target Percentage to reach:</label>
+        <div class="flex gap-2">
+            <input type="number" id="targetPercentage" class="w-full p-2 text-gray-900 rounded-md border border-gray-300" placeholder="Enter target percentage" min="0" max="100" value="75">
+            <button onclick="calculateAttendance()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">Set</button>
+        </div>
+        <div id="loading-container" class="flex justify-center mt-4 hidden">
+            <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+        </div>
+        <ul id="attendance-list" class="mt-4 space-y-2"></ul>
+        <footer class="w-full text-center py-4 mt-8  text-gray-600">
+            Made with ❤️ by Aaron Thomas
+        </footer>
+    </div>
+    <script>
+        let attendanceData = [];
+        async function fetchAttendance() {
+    try {
+        document.getElementById("loading-container").classList.remove("hidden");
+        const response = await fetch('/get_attendance');
+        const data = await response.json();
+        document.getElementById("loading-container").classList.add("hidden");
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        document.getElementById('student-info').textContent = `Name: ${data.name}, Uni Reg No: ${data.Uni_Reg_No}, Roll No: ${data.Roll_no}`;
+        attendanceData = data.attendance_data;
+        calculateAttendance();
+    } catch (error) {
+        console.error("Error fetching attendance:", error);
+    }
+}
+function calculateAttendance() {
+    const targetPercentage = parseFloat(document.getElementById("targetPercentage").value);
+    if (isNaN(targetPercentage) || targetPercentage < 0 || targetPercentage > 100) {
+        alert("Please enter a valid target percentage between 0 and 100.");
+        return;
+    }
+    const attendanceList = document.getElementById("attendance-list");
+    attendanceList.innerHTML = "";
+    attendanceData.forEach(({ subject, attended, total }) => {
+        let neededClasses = 0;
+        let direction = "more";
+        if (total > 0 && attended >= 0) {
+            const currentPercentage = (attended / total) * 100;
+            if (currentPercentage >= targetPercentage) {
+                neededClasses = Math.ceil(((attended * 100 / targetPercentage) - total));
+                direction = "bunk";
+            } else {
+                neededClasses = Math.ceil((targetPercentage * total - attended * 100) / (100 - targetPercentage));
+                direction = "attend";
+            }
+            const listItem = document.createElement("li");
+            listItem.className = "bg-gray-200 p-3 rounded-lg shadow";
+            listItem.textContent = `${subject}: Attended ${attended}/${total} (${currentPercentage.toFixed(2)}%). ${direction} ${neededClasses}  class.`;
+            attendanceList.appendChild(listItem);
+        }
+    });
+}
+fetchAttendance();
+    </script>
+</body>
+</html>
