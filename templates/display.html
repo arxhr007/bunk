@@ -65,10 +65,12 @@ function calculateAttendance() {
         if (total > 0 && attended >= 0) {
             const currentPercentage = (attended / total) * 100;
             if (currentPercentage >= targetPercentage) {
-                neededClasses = Math.ceil(((attended * 100 / targetPercentage) - total));
+                neededClasses = Math.floor(((attended * 100 / targetPercentage) - total));
+                if (neededClasses < 0) neededClasses = 0;
                 direction = "bunk";
             } else {
                 neededClasses = Math.ceil((targetPercentage * total - attended * 100) / (100 - targetPercentage));
+                if (neededClasses < 0) neededClasses = 0;
                 direction = "attend";
             }
             const listItem = document.createElement("li");
